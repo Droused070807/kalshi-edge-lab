@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kalshi Edge Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + status strip, tab bar, then one panel per tab (tables scroll sideways on phones) */
+:root{
+  --bg:#eef1f5;--panel:#ffffff;--ink:#16202c;--muted:#5b6878;--line:#d5dce5;
+  --accent:#1f4fd1;--accent-ink:#ffffff;
+  --good:#11804a;--good-bg:#e1f3e9;--warn:#9a6200;--warn-bg:#fbefd6;--bad:#b3261e;--bad-bg:#f8e1df;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f141b;--panel:#171e28;--ink:#e3e9f1;--muted:#93a1b3;--line:#2a3442;
+  --accent:#7aa2ff;--accent-ink:#0b1220;
+  --good:#5fd394;--good-bg:#143224;--warn:#f0b54d;--warn-bg:#3a2c10;--bad:#ff8a80;--bad-bg:#3b1715;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:20px 40px;display:grid;gap:14px}
+header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:end}
+h1{font-family:var(--f-display);font-weight:700;font-size:1.9rem;margin:0}
+header p{margin:2px 0 0;color:var(--muted);max-width:70ch}
+h2{font-family:var(--f-display);font-size:1.2rem;margin:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+button,.btn{font:inherit;font-weight:600;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{background:transparent;color:var(--muted);border-radius:6px 6px 0 0;padding:9px 14px;border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font-family:var(--f-mono);font-size:.78rem;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}
+.chip.good{border-color:var(--good);color:var(--good)}.chip.bad{border-color:var(--bad);color:var(--bad)}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{display:grid;gap:4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+input,select{font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+.check{display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--ink);font-weight:500}
+.msg{padding:10px 12px;border-radius:6px;font-size:.88rem}
+.msg.err{background:var(--bad-bg);color:var(--bad)}.msg.info{background:var(--warn-bg);color:var(--warn)}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+th.l,td.l{text-align:left}
+tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer}tbody tr.click:hover{background:var(--bg)}
+.mono{font-family:var(--f-mono);font-size:.85rem}
+.sub{display:block;color:var(--muted);font-size:.75rem}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:.78rem;padding:2px 7px;border-radius:4px}
+.pos{background:var(--good-bg);color:var(--good)}.neg{background:var(--bad-bg);color:var(--bad)}.flat{color:var(--muted)}
+.tag{display:inline-block;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:1px 6px;border-radius:3px;margin-left:4px;border:1px solid var(--line);color:var(--muted)}
+.tag.early{border-color:var(--good);color:var(--good)}.tag.wide{border-color:var(--warn);color:var(--warn)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.stat b{display:block;font-family:var(--f-mono);font-size:1.15rem;font-weight:500}
+.stat span{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.empty{color:var(--muted);text-align:left!important;white-space:normal}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:10px}
+.detail{display:grid;gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.note{color:var(--muted);font-size:.85rem;max-width:80ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Kalshi Edge Lab</h1>
+      <p>Logs every Kalshi game-winner price against the no-vig sportsbook consensus, paper-trades the strongest edges, and scores the results. Paper mode only; it never places real orders.</p>
+    </div>
+    <button id="collect">Collect now</button>
+  </header>
+  <div class="status" id="status"></div>
+  <div id="msgs"></div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="markets" aria-selected="true">Markets</button>
+    <button role="tab" data-tab="signals">Signals</button>
+    <button role="tab" data-tab="paper">Paper trading</button>
+    <button role="tab" data-tab="research">Threshold research</button>
+    <button role="tab" data-tab="runs">Collection log</button>
+  </nav>
+
+  <section id="tab-markets">
+    <div class="panel controls">
+      <label>League<select id="m-league"></select></label>
+      <label>Min net edge (pp)<input id="m-min" type="number" step="0.5" value="2" style="width:7em"></label>
+      <label class="check"><input id="m-only" type="checkbox" checked> Only show edges</label>
+    </div>
+    <div class="tablewrap" style="margin-top:12px"><table>
+      <thead><tr><th class="l">Game</th><th class="l">Contract</th><th>Book prob</th><th>Kalshi ask</th><th>Fee</th>
+      <th>Net edge</th><th>ROI</th><th>Spread</th><th>Kelly (info)</th><th>Starts</th></tr></thead>
+      <tbody id="m-rows"></tbody></table></div>
+  </section>
+
+  <section id="tab-signals" hidden>
+    <p class="note">The first moment each contract crossed the logging threshold. Every one is kept, traded or not, so thresholds can be compared fairly. Tap a row for its full price history.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th class="l">Logged</th><th class="l">Game</th><th class="l">Contract</th><th>Book prob</th><th>Ask</th>
+      <th>Net edge</th><th>Edge now</th><th>Starts in</th><th class="l">Paper</th><th class="l">Result</th></tr></thead>
+      <tbody id="s-rows"></tbody></table></div>
+    <div id="s-detail" class="panel detail" hidden style="margin-top:12px"></div>
+  </section>
+
+  <section id="tab-paper" hidden>
+    <div class="stats" id="p-stats"></div>
+    <div class="panel" style="margin-top:12px"><h2>Equity</h2><div id="p-curve"></div></div>
+    <div class="tablewrap" style="margin-top:12px"><table>
+      <thead><tr><th class="l">Opened</th><th class="l">Contract</th><th>Entry prob</th><th>Contracts</th><th>Avg price</th>
+      <th>Fee</th><th>Cost</th><th class="l">Status</th><th>P&amp;L</th></tr></thead>
+      <tbody id="p-rows"></tbody></table></div>
+    <p class="note" id="p-rej"></p>
+  </section>
+
+  <section id="tab-research" hidden>
+    <p class="note">Each row replays the same stored quotes: the first time each contract side reached that edge, scored as one contract held to settlement. "Books" vs "Kalshi" Brier asks whether the sportsbook consensus predicts outcomes better than Kalshi's own price; lower is better. Results mean little before a few hundred settled signals.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th class="l">Min edge</th><th>Signals</th><th>Games</th><th>Settled</th><th>Win rate</th><th>Avg book prob</th>
+      <th>Flat ROI</th><th>Brier books</th><th>Brier Kalshi</th><th>Avg CLV</th><th>Early share</th></tr></thead>
+      <tbody id="r-rows"></tbody></table></div>
+  </section>
+
+  <section id="tab-runs" hidden>
+    <div class="tablewrap"><table>
+      <thead><tr><th class="l">Started</th><th class="l">League</th><th class="l">Status</th><th>Kalshi mkts</th><th>Games</th>
+      <th>Matched</th><th>Quotes</th><th>Signals</th><th>Paper fills</th><th>Credits left</th><th class="l">Note</th></tr></thead>
+      <tbody id="u-rows"></tbody></table></div>
+  </section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct=(x,d=1)=>x==null?"–":(x*100).toFixed(d)+"%";
+const pp=x=>x==null?"–":((x>=0?"+":"")+(x*100).toFixed(1)+"pp");
+const cents=x=>x==null?"–":(x*100).toFixed(1)+"¢";
+const money=x=>x==null?"–":(x<0?"−$":"$")+Math.abs(x).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const when=s=>s?new Date(s).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"–";
+function startsIn(iso){const h=(new Date(iso)-Date.now())/36e5;if(h<0)return"Started";return h<24?`${h.toFixed(h<10?1:0)}h`:`${(h/24).toFixed(1)}d`}
+const contract=q=>`${q.side==="yes"?"YES":"NO"} ${q.team}`;
+const game=q=>`${q.away_team} @ ${q.home_team}`;
+const cls=(x,t=0)=>x==null?"flat":x>=t?"pos":x<0?"neg":"flat";
+async function api(path,opts){const r=await fetch(path,opts);if(!r.ok){let m=r.statusText;try{m=(await r.json()).detail||m}catch(e){}throw new Error(m)}return r.json()}
+function note(t,k="err"){const d=document.createElement("div");d.className=`msg ${k}`;d.textContent=t;$("msgs").appendChild(d)}
+function empty(tb,cols,text){tb.innerHTML=`<tr><td class="empty" colspan="${cols}">${esc(text)}</td></tr>`}
+
+let STATUS=null,QUOTES=[];
+async function loadStatus(){
+  STATUS=await api("/api/status");
+  const last=STATUS.recent_runs.find(r=>r.odds_credits_left!=null);
+  const lastRun=STATUS.recent_runs[0];
+  $("status").innerHTML=[
+    `<span class="chip ${STATUS.odds_key_set?"good":"bad"}">${STATUS.odds_key_set?"Odds API key set":"No Odds API key in .env"}</span>`,
+    `<span class="chip">Every ${STATUS.interval_min} min</span>`,
+    `<span class="chip">Last run: ${lastRun?when(lastRun.started_at)+" · "+esc(lastRun.status):"never"}</span>`,
+    `<span class="chip">Next: ${STATUS.next_run?when(STATUS.next_run):"–"}</span>`,
+    `<span class="chip">Credits left: ${last?last.odds_credits_left:"–"}</span>`,
+    `<span class="chip good">Real-money trading: off</span>`].join("");
+  const sel=$("m-league");
+  if(!sel.options.length){sel.innerHTML=`<option value="">All tracked</option>`+STATUS.leagues.map(l=>`<option value="${l.key}">${esc(l.label)}</option>`).join("")}
+  if(!STATUS.odds_key_set) note("Add ODDS_API_KEY to the .env file and restart. Without it the collector only stores Kalshi prices.","info");
+  renderRuns();
+}
+
+async function loadMarkets(){
+  const lg=$("m-league").value;
+  QUOTES=(await api("/api/markets"+(lg?`?league=${lg}`:""))).quotes;renderMarkets();
+}
+function renderMarkets(){
+  const min=(parseFloat($("m-min").value)||0)/100,only=$("m-only").checked,tb=$("m-rows");
+  const rows=only?QUOTES.filter(q=>q.ev>=min):QUOTES;
+  if(!rows.length){empty(tb,10,QUOTES.length?`No contracts clear ${pct(min)} net edge right now. Lower the minimum or untick "Only show edges".`:"No priced markets yet. Press Collect now, or wait for the next scheduled run.");return}
+  tb.innerHTML=rows.map(q=>`<tr>
+    <td class="l"><b>${esc(game(q))}</b><span class="sub">${esc(q.consensus_src)} · ${esc(q.ticker)}</span></td>
+    <td class="l">${esc(contract(q))}</td>
+    <td class="mono">${pct(q.consensus_p)}</td><td class="mono">${cents(q.ask)}</td><td class="mono">${cents(q.fee)}</td>
+    <td><span class="pill ${cls(q.ev,min)}">${pp(q.ev)}</span></td><td class="mono">${pct(q.roi)}</td>
+    <td class="mono">${cents(q.spread)}${q.wide?'<span class="tag wide">Wide</span>':""}</td>
+    <td class="mono">${pct(q.kelly_info)}</td>
+    <td class="mono">${startsIn(q.commence_time)}${q.early?'<span class="tag early">Early</span>':""}</td></tr>`).join("");
+}
+
+async function loadSignals(){
+  const {signals}=await api("/api/signals"),tb=$("s-rows");
+  if(!signals.length){empty(tb,10,"No signals yet. They appear the first time a contract's net edge reaches the logging threshold.");return}
+  tb.innerHTML=signals.map(s=>`<tr class="click" data-id="${s.id}" tabindex="0">
+    <td class="l mono">${when(s.signal_ts)}</td><td class="l">${esc(game(s))}</td><td class="l">${esc(contract(s))}</td>
+    <td class="mono">${pct(s.consensus_p)}</td><td class="mono">${cents(s.ask)}</td>
+    <td><span class="pill pos">${pp(s.ev)}</span></td><td class="mono">${pp(s.latest_ev)}</td>
+    <td class="mono">${startsIn(s.commence_time)}${s.early?'<span class="tag early">Early</span>':""}</td>
+    <td class="l">${s.position_id?esc(s.position_status)+(s.position_pnl!=null?" "+money(s.position_pnl):""):"–"}</td>
+    <td class="l">${s.result?(s.result===s.side?'<span class="pill pos">Won</span>':s.result==="void"?"Void":'<span class="pill neg">Lost</span>'):"Pending"}</td></tr>`).join("");
+  tb.querySelectorAll("tr.click").forEach(tr=>{const go=()=>showSignal(tr.dataset.id);tr.onclick=go;tr.onkeydown=e=>{if(e.key==="Enter")go()}});
+}
+function lineChart(points,{h=160,fmt=v=>v}={}){
+  if(points.length<2) return `<p class="note">Not enough data points to chart yet.</p>`;
+  const W=600,H=h,pl=56,pr=10,pt=10,pb=22,ys=points.map(p=>p.y),lo=Math.min(...ys),hi=Math.max(...ys),span=(hi-lo)||Math.abs(hi)*0.05||1;
+  const x=i=>pl+(W-pl-pr)*i/(points.length-1),y=v=>pt+(H-pt-pb)*(1-(v-(lo-span*.1))/(span*1.2));
+  const d=points.map((p,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(p.y).toFixed(1)}`).join("");
+  const ticks=[lo,(lo+hi)/2,hi];
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Line chart">
+    ${ticks.map(t=>`<line x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(t)+3}" text-anchor="end">${fmt(t)}</text>`).join("")}
+    <path d="${d} L${x(points.length-1)},${H-pb} L${x(0)},${H-pb}Z" fill="var(--accent)" opacity=".12"/>
+    <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <circle cx="${x(points.length-1)}" cy="${y(points.at(-1).y)}" r="3.5" fill="var(--accent)"/>
+    <text x="${pl}" y="${H-6}">${esc(points[0].label||"")}</text><text x="${W-pr}" y="${H-6}" text-anchor="end">${esc(points.at(-1).label||"")}</text>
+  </svg></div>`;
+}
+async function showSignal(id){
+  const d=await api(`/api/signals/${id}`),q=d.at_signal,box=$("s-detail");box.hidden=false;
+  const hist=d.history.map(h=>({y:h.ev,label:when(h.ts)}));
+  box.innerHTML=`<h2>${esc(contract(q))} · ${esc(game(q))}</h2>
+    <div class="grid2">
+      <div><table><tbody>
+        <tr><td class="l">Book probability</td><td class="mono">${pct(q.consensus_p)} <span class="sub">${esc(q.consensus_src)}</span></td></tr>
+        <tr><td class="l">Kalshi ask / bid</td><td class="mono">${cents(q.ask)} / ${cents(q.bid)}</td></tr>
+        <tr><td class="l">Taker fee</td><td class="mono">${cents(q.fee)}</td></tr>
+        <tr><td class="l">Net edge</td><td class="mono">${pp(q.ev)} (ROI ${pct(q.roi)})</td></tr>
+        <tr><td class="l">Kelly fraction (info only)</td><td class="mono">${pct(q.kelly_info)}</td></tr>
+        <tr><td class="l">Hours to start at signal</td><td class="mono">${q.hours_to_start?.toFixed(1)}</td></tr>
+        <tr><td class="l">Paper position</td><td class="mono">${d.position?`${d.position.contracts} @ ${cents(d.position.avg_price)} · cost ${money(d.position.cost)}`:"None"}</td></tr>
+        <tr><td class="l">Result</td><td class="mono">${d.settlement?esc(d.settlement.result.toUpperCase()):"Pending"}</td></tr>
+      </tbody></table></div>
+      <div><b>Net edge over time</b>${lineChart(hist,{fmt:v=>(v*100).toFixed(1)+"pp"})}</div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th class="l">Book at signal</th><th class="l">Team</th><th>Decimal</th><th>No-vig prob</th><th class="l">Updated</th></tr></thead>
+    <tbody>${d.books_at_signal.map(b=>`<tr><td class="l">${esc(b.bookmaker)}</td><td class="l">${esc(b.team)}</td><td class="mono">${b.decimal_price.toFixed(2)}</td><td class="mono">${pct(b.novig_p)}</td><td class="l mono">${when(b.book_last_update)}</td></tr>`).join("")}</tbody></table></div>`;
+  box.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
+}
+
+async function loadPaper(){
+  const [perf,{positions,rejections}]=await Promise.all([api("/api/paper/performance"),api("/api/paper/positions")]);
+  const st=[["Equity (realized)",money(perf.equity)],["Marked to market",money(perf.mtm_equity)],
+    ["Unrealized P&L",money(perf.unrealized_pnl)],["Uncommitted cash",money(perf.cash)],["Realized P&L",money(perf.realized_pnl)],["Open positions",`${perf.open_positions} · ${money(perf.open_exposure)}`],
+    ["Settled",`${perf.settled_positions} / ${perf.min_settled_target}`],["Win rate",pct(perf.win_rate)],["ROI on staked",pct(perf.roi_on_staked)],
+    ["Max drawdown",pct(perf.max_drawdown)],["Brier score",perf.brier==null?"–":perf.brier.toFixed(4)],
+    ["Avg CLV",pp(perf.avg_clv_consensus)],["Kalshi price move",pp(perf.avg_kalshi_move)]];
+  $("p-stats").innerHTML=st.map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
+  $("p-curve").innerHTML=lineChart(perf.equity_curve.map(p=>({y:p.equity,label:p.t?when(p.t):"Start"})),{fmt:v=>"$"+Math.round(v).toLocaleString()});
+  const tb=$("p-rows");
+  if(!positions.length) empty(tb,9,"No paper positions yet. One opens when a contract's net edge reaches the paper threshold and the orderbook has depth at that price.");
+  else tb.innerHTML=positions.map(p=>`<tr><td class="l mono">${when(p.opened_at)}</td>
+    <td class="l">${p.side.toUpperCase()} → ${esc(p.backs_team)}<span class="sub">${esc(p.ticker)}</span></td>
+    <td class="mono">${pct(p.entry_p)}</td><td class="mono">${p.contracts}</td><td class="mono">${cents(p.avg_price)}</td>
+    <td class="mono">${money(p.fee)}</td><td class="mono">${money(p.cost)}</td><td class="l">${esc(p.status)}</td>
+    <td>${p.pnl==null?"–":`<span class="pill ${cls(p.pnl)}">${money(p.pnl)}</span>`}</td></tr>`).join("");
+  $("p-rej").textContent=rejections.length?"Skipped paper fills: "+rejections.map(r=>`${r.reason} (${r.n})`).join(" · "):"";
+}
+
+async function loadResearch(){
+  const {thresholds}=await api("/api/analytics/thresholds"),tb=$("r-rows");
+  tb.innerHTML=thresholds.map(t=>`<tr><td class="l"><b>${pct(t.threshold,0)}</b></td><td class="mono">${t.signals}</td><td class="mono">${t.games}</td>
+    <td class="mono">${t.settled}</td><td class="mono">${pct(t.win_rate)}</td><td class="mono">${pct(t.avg_predicted_p)}</td>
+    <td>${t.flat_roi==null?"–":`<span class="pill ${cls(t.flat_roi)}">${pct(t.flat_roi)}</span>`}</td>
+    <td class="mono">${t.brier_books==null?"–":t.brier_books.toFixed(4)}</td><td class="mono">${t.brier_kalshi==null?"–":t.brier_kalshi.toFixed(4)}</td>
+    <td class="mono">${pp(t.avg_clv)}</td><td class="mono">${pct(t.early_share,0)}</td></tr>`).join("");
+}
+
+function renderRuns(){
+  const tb=$("u-rows"),runs=STATUS?.recent_runs||[];
+  if(!runs.length){empty(tb,11,"No collection runs yet.");return}
+  tb.innerHTML=runs.map(r=>`<tr><td class="l mono">${when(r.started_at)}</td><td class="l">${esc(r.league)}</td>
+    <td class="l"><span class="pill ${r.status==="ok"?"pos":r.status==="error"?"neg":"flat"}">${esc(r.status)}</span></td>
+    <td class="mono">${r.kalshi_markets}</td><td class="mono">${r.odds_games}</td><td class="mono">${r.matched_games}</td>
+    <td class="mono">${r.quotes}</td><td class="mono">${r.new_signals}</td><td class="mono">${r.new_positions}</td>
+    <td class="mono">${r.odds_credits_left??"–"}</td><td class="l" style="white-space:normal;min-width:16em">${esc(r.note||"")}</td></tr>`).join("");
+}
+
+const LOADERS={markets:loadMarkets,signals:loadSignals,paper:loadPaper,research:loadResearch,runs:loadStatus};
+let current="markets";
+async function show(tab){
+  current=tab;
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
+  document.querySelectorAll("section[id^=tab-]").forEach(s=>s.hidden=s.id!==`tab-${tab}`);
+  try{await LOADERS[tab]()}catch(e){note(`Couldn't load ${tab}: ${e.message}`)}
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
+$("m-league").onchange=loadMarkets;$("m-min").oninput=renderMarkets;$("m-only").onchange=renderMarkets;
+$("collect").onclick=async()=>{
+  const b=$("collect");b.disabled=true;b.textContent="Collecting…";$("msgs").textContent="";
+  try{const {results}=await api("/api/collect",{method:"POST"});
+    for(const r of results) if(r.status==="error") note(`${r.league}: ${r.note}`);
+    await loadStatus();await show(current);
+  }catch(e){note(e.message)}finally{b.disabled=false;b.textContent="Collect now"}
+};
+(async()=>{try{await loadStatus()}catch(e){note("Can't reach the backend. Is run.bat still open?")}show("markets")})();
+setInterval(()=>{loadStatus().catch(()=>{});if(current!=="signals")show(current)},120000);
+</script>
+</body>
+</html>
